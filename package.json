@@ -1,0 +1,13 @@
+{
+	"name": "mon-projet-nuxt",
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "concurrently \"cd backend && pnpm dev\" \"cd frontend && pnpm dev\"",
+		"dev:frontend": "cd frontend && pnpm dev",
+		"dev:backend": "cd backend && pnpm dev"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.2",
+		"nodemon": "^3.0.3"
+	}
+}
