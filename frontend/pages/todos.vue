@@ -7,6 +7,43 @@
       {{ error }}
     </div>
 
+    <!-- Filtres et Recherche -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <input 
+          v-model="filters.search"
+          placeholder="Rechercher..." 
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        />
+        <select 
+          v-model="filters.priority"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="">Toutes les priorités</option>
+          <option value="high">Haute priorité</option>
+          <option value="medium">Moyenne priorité</option>
+          <option value="low">Basse priorité</option>
+        </select>
+        <select 
+          v-model="filters.status"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="">Tous les statuts</option>
+          <option value="pending">En cours</option>
+          <option value="completed">Terminé</option>
+        </select>
+        <select 
+          v-model="filters.tag"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="">Tous les tags</option>
+          <option v-for="tag in availableTags" :key="tag" :value="tag">
+            {{ tag }}
+          </option>
+        </select>
+      </div>
+    </div>
+
     <!-- Formulaire d'ajout -->
     <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-4 sm:mb-8">
       <form @submit.prevent="createTodo" class="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -30,6 +67,24 @@
             {{ user.name }}
           </option>
         </select>
+        <select 
+          v-model="newTodo.priority"
+          class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="high">Haute priorité</option>
+          <option value="medium">Moyenne priorité</option>
+          <option value="low">Basse priorité</option>
+        </select>
+        <input 
+          type="date"
+          v-model="newTodo.due_date"
+          class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input 
+          v-model="newTodo.tags"
+          placeholder="Tags (séparés par des virgules)" 
+          class="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
         <button 
           type="submit"
           :disabled="isLoading"
@@ -53,52 +108,129 @@
       </div>
 
       <div 
-        v-for="todo in todos" 
+        v-for="todo in filteredTodos" 
         :key="todo.id" 
         class="bg-white rounded-lg shadow p-4 sm:p-6 transition-all hover:shadow-lg"
       >
         <div v-if="editingTodo?.id === todo.id">
-          <form @submit.prevent="updateTodo" class="space-y-3 sm:space-y-4">
-            <input 
-              v-model="editingTodo.title" 
-              required
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input 
-              v-model="editingTodo.description" 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div class="flex items-center gap-4">
-              <label class="flex items-center gap-2">
+          <form @submit.prevent="updateTodo" class="space-y-4">
+            <!-- Informations principales -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
                 <input 
-                  type="checkbox" 
-                  v-model="editingTodo.completed"
-                  class="form-checkbox h-5 w-5 text-blue-500"
-                >
-                <span class="text-gray-700">Terminé</span>
-              </label>
+                  v-model="editingTodo.title" 
+                  required
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea 
+                  v-model="editingTodo.description" 
+                  rows="2"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                ></textarea>
+              </div>
             </div>
-            <select 
-              v-model="editingTodo.user_id"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Non assigné</option>
-              <option v-for="user in users" :key="user.id" :value="user.id">
-                {{ user.name }}
-              </option>
-            </select>
+
+            <!-- Statut et Priorité -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                <div class="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    v-model="editingTodo.completed"
+                    class="form-checkbox h-5 w-5 text-blue-500"
+                  >
+                  <span class="text-gray-700">Terminé</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                <select 
+                  v-model="editingTodo.priority"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="high">Haute priorité</option>
+                  <option value="medium">Moyenne priorité</option>
+                  <option value="low">Basse priorité</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date d'échéance</label>
+                <input 
+                  type="date"
+                  v-model="editingTodo.due_date"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <!-- Assignation et Tags -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Assigné à</label>
+                <select 
+                  v-model="editingTodo.user_id"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Non assigné</option>
+                  <option v-for="user in users" :key="user.id" :value="user.id">
+                    {{ user.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                <div class="flex flex-wrap gap-2 mb-2">
+                  <span 
+                    v-for="tag in editingTodo.tags" 
+                    :key="tag"
+                    class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-1"
+                  >
+                    {{ tag }}
+                    <button 
+                      type="button" 
+                      @click="removeTag(tag)"
+                      class="text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                </div>
+                <div class="flex gap-2">
+                  <input 
+                    v-model="newTag"
+                    placeholder="Nouveau tag" 
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    @keyup.enter.prevent="addTag"
+                  />
+                  <button 
+                    type="button"
+                    @click="addTag"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Boutons d'action -->
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <button
                 type="submit"
                 :disabled="isLoading"
-                class="w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-300"
+                class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-green-300"
               >
                 {{ isLoading ? 'Sauvegarde...' : 'Sauvegarder' }}
               </button>
               <button 
                 type="button"
                 @click="cancelEdit" 
-                class="w-full sm:w-auto px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                class="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
                 Annuler
               </button>
@@ -118,6 +250,19 @@
                 >
                   Terminé
                 </span>
+                <span 
+                  :class="getPriorityColor(todo.priority)"
+                  class="px-2 py-1 rounded-full text-sm"
+                >
+                  {{ todo.priority }}
+                </span>
+                <span 
+                  v-if="todo.due_date"
+                  :class="isOverdue(todo.due_date) ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'"
+                  class="px-2 py-1 rounded-full text-sm"
+                >
+                  {{ formatDate(todo.due_date) }}
+                </span>
               </div>
               <p class="text-gray-600 mt-2">{{ todo.description }}</p>
               <p class="text-sm text-gray-500 mt-2">
@@ -126,6 +271,46 @@
               <p v-if="todo.user" class="text-sm text-gray-500 mt-1">
                 Assigné à: {{ todo.user.name }}
               </p>
+              <div class="flex flex-wrap gap-2 mt-2">
+                <span 
+                  v-for="tag in todo.tags" 
+                  :key="tag"
+                  class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+              <!-- Sous-tâches -->
+              <div class="mt-4 pl-4 border-l-2 border-gray-200">
+                <div 
+                  v-for="subtask in todo.subtasks" 
+                  :key="subtask.id"
+                  class="flex items-center gap-2 mb-2"
+                >
+                  <input 
+                    type="checkbox"
+                    v-model="subtask.completed"
+                    @change="updateSubtask(todo.id, subtask)"
+                    class="form-checkbox h-4 w-4 text-blue-500"
+                  />
+                  <span :class="{ 'line-through': subtask.completed }">
+                    {{ subtask.title }}
+                  </span>
+                </div>
+                <form @submit.prevent="addSubtask(todo.id)" class="flex gap-2 mt-2">
+                  <input 
+                    v-model="newSubtasks[todo.id]"
+                    placeholder="Nouvelle sous-tâche"
+                    class="flex-1 px-3 py-1 border border-gray-300 rounded"
+                  />
+                  <button 
+                    type="submit"
+                    class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                  >
+                    +
+                  </button>
+                </form>
+              </div>
             </div>
             <div class="flex gap-2 mt-4 sm:mt-0">
               <button 
@@ -149,148 +334,192 @@
 </template>
 
 <script setup>
-import { useNuxtApp } from '#app'
 
 const { $graphql } = useNuxtApp()
 
+const supabase = useSupabaseClient()
+
 const todos = ref([])
-const newTodo = ref({ title: '', description: '', user_id: '' })
+const newTodo = ref({ 
+  title: '', 
+  description: '', 
+  user_id: '',
+  priority: 'medium', // Ajout de la priorité
+  due_date: null, // Ajout de la date d'échéance
+  tags: [] // Ajout des tags
+})
 const editingTodo = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
 const users = ref([])
 
-const API_URL = 'http://localhost:4000/graphql'
+// État des filtres
+const filters = ref({
+  search: '',
+  priority: '',
+  status: '',
+  tag: ''
+})
 
-// Fonction utilitaire pour les requêtes GraphQL avec gestion d'erreur
-const graphqlRequest = async (query, variables = {}) => {
+// Tags disponibles
+const availableTags = ref([])
+
+// Gestion des sous-tâches
+const newSubtasks = ref({})
+
+// Filtrer les todos
+const filteredTodos = computed(() => {
+  let result = todos.value
+
+  // Filtre par recherche
+  if (filters.value.search) {
+    const search = filters.value.search.toLowerCase()
+    result = result.filter(todo => 
+      todo.title.toLowerCase().includes(search) ||
+      todo.description.toLowerCase().includes(search)
+    )
+  }
+
+  // Filtre par priorité
+  if (filters.value.priority) {
+    result = result.filter(todo => todo.priority === filters.value.priority)
+  }
+
+  // Filtre par statut
+  if (filters.value.status) {
+    const isCompleted = filters.value.status === 'completed'
+    result = result.filter(todo => todo.completed === isCompleted)
+  }
+
+  // Filtre par tag
+  if (filters.value.tag) {
+    result = result.filter(todo => todo.tags?.includes(filters.value.tag))
+  }
+
+  return result
+})
+
+// Charger les todos
+const loadTodos = async () => {
   try {
     isLoading.value = true
-    error.value = null
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables
-      })
-    })
+    const client = useSupabaseClient()
     
-    const result = await response.json()
-    
-    if (result.errors) {
-      throw new Error(result.errors[0].message)
+    // Chargement des todos
+    const { data: todosData, error: todosError } = await client
+      .from('todos')
+      .select(`
+        *,
+        user:users (
+          id,
+          name
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (todosError) throw todosError
+
+    // Tentative de chargement des sous-tâches
+    let subtasksData = []
+    try {
+      const { data, error } = await client
+        .from('subtasks')
+        .select('*')
+        .order('created_at', { ascending: true })
+      
+      if (!error) {
+        subtasksData = data
+      }
+    } catch (err) {
+      console.warn('Table subtasks non disponible:', err)
     }
+
+    // Combinaison des données
+    todos.value = (todosData || []).map(todo => ({
+      ...todo,
+      tags: Array.isArray(todo.tags) ? todo.tags : [],
+      subtasks: subtasksData.filter(subtask => subtask?.todo_id === todo.id)
+    }))
     
-    return result
-  } catch (e) {
-    error.value = e.message
-    throw e
+    // Extraction des tags uniques
+    const tags = new Set()
+    todos.value.forEach(todo => {
+      if (todo.tags && Array.isArray(todo.tags)) {
+        todo.tags.forEach(tag => tags.add(tag))
+      }
+    })
+    availableTags.value = Array.from(tags)
+
+  } catch (err) {
+    console.error('Erreur:', err)
+    error.value = "Erreur lors du chargement des todos"
   } finally {
     isLoading.value = false
   }
 }
 
-// Requêtes GraphQL
-const GET_TODOS = `
-  query GetTodos {
-    todos {
-      id
-      title
-      description
-      completed
-      created_at
-      user_id
-      user {
-        name
-      }
-    }
-  }
-`
-
-const CREATE_TODO = `
-  mutation CreateTodo($title: String!, $description: String, $user_id: Int) {
-    createTodo(title: $title, description: $description, user_id: $user_id) {
-      id
-      title
-      description
-      completed
-      created_at
-      user_id
-      user {
-        name
-      }
-    }
-  }
-`
-
-
-const UPDATE_TODO = `
-  mutation UpdateTodo($id: Int!, $title: String, $description: String, $completed: Boolean, $user_id: Int) {
-    updateTodo(id: $id, title: $title, description: $description, completed: $completed, user_id: $user_id) {
-      id
-      title
-      description
-      completed
-      created_at
-      user_id
-      user {
-        name
-      }
-    }
-  }
-`
-
-const DELETE_TODO = `
-  mutation DeleteTodo($id: Int!) {
-    deleteTodo(id: $id)
-  }
-`
-
-const GET_USERS = `
-  query GetUsers {
-    users {
-      id
-      name
-    }
-  }
-`
-
-// Charger les todos
-const loadTodos = async () => {
-  try {
-    const { data } = await graphqlRequest(GET_TODOS)
-    todos.value = data.todos
-  } catch (error) {
-    console.error('Erreur lors du chargement:', error)
-  }
-}
-
-// Créer un todo
+// Mettre à jour la fonction createTodo pour gérer les tags correctement
 const createTodo = async () => {
   if (!newTodo.value.title.trim()) {
     error.value = "Le titre est requis"
     return
   }
-  
+
   try {
-    const variables = {
-      ...newTodo.value,
-      user_id: newTodo.value.user_id ? parseInt(newTodo.value.user_id) : null
+    const tags = newTodo.value.tags
+      ? newTodo.value.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      : []
+
+    const client = useSupabaseClient()
+    const { data, error } = await client
+      .from('todos')
+      .insert({
+        title: newTodo.value.title,
+        description: newTodo.value.description,
+        user_id: newTodo.value.user_id ? parseInt(newTodo.value.user_id) : null,
+        priority: newTodo.value.priority,
+        due_date: newTodo.value.due_date,
+        tags: tags
+      })
+      .select(`
+        *,
+        user:users (
+          id,
+          name
+        )
+      `)
+      .single()
+
+    if (error) throw error
+
+    todos.value.unshift({
+      ...data,
+      subtasks: [],
+      tags: tags
+    })
+    
+    newTodo.value = { 
+      title: '', 
+      description: '', 
+      user_id: '', 
+      priority: 'medium', 
+      due_date: null, 
+      tags: ''
     }
-    const { data } = await graphqlRequest(CREATE_TODO, variables)
-    todos.value.unshift(data.createTodo)
-    newTodo.value = { title: '', description: '', user_id: '' }
   } catch (error) {
     console.error('Erreur lors de la création:', error)
+    error.value = error.message
   }
 }
 
 // Démarrer l'édition
 const startEdit = (todo) => {
-  editingTodo.value = { ...todo }
+  editingTodo.value = { 
+    ...todo,
+    tags: [...(todo.tags || [])], // Créer une copie du tableau des tags
+    user_id: todo.user_id || '' // Assurer que user_id est une chaîne vide si null
+  }
+  newTag.value = ''
 }
 
 // Annuler l'édition
@@ -305,20 +534,34 @@ const updateTodo = async () => {
     error.value = "Le titre est requis"
     return
   }
-  
+
   try {
-    const { data } = await graphqlRequest(UPDATE_TODO, {
-      id: editingTodo.value.id,
-      title: editingTodo.value.title,
-      description: editingTodo.value.description,
-      completed: editingTodo.value.completed,
-      user_id: editingTodo.value.user_id
-    })
-    const index = todos.value.findIndex(t => t.id === data.updateTodo.id)
-    todos.value[index] = data.updateTodo
+    const client = useSupabaseClient()
+    const { data, error } = await client
+      .from('todos')
+      .update({
+        title: editingTodo.value.title,
+        description: editingTodo.value.description,
+        completed: editingTodo.value.completed,
+        user_id: editingTodo.value.user_id ? parseInt(editingTodo.value.user_id) : null,
+        priority: editingTodo.value.priority,
+        due_date: editingTodo.value.due_date,
+        tags: editingTodo.value.tags
+      })
+      .eq('id', editingTodo.value.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    const index = todos.value.findIndex(t => t.id === data.id)
+    todos.value[index] = data
     editingTodo.value = null
   } catch (error) {
     console.error('Erreur lors de la mise à jour:', error)
+    error.value = error.message
   }
 }
 
@@ -326,28 +569,136 @@ const updateTodo = async () => {
 const confirmDelete = async (id) => {
   if (confirm('Êtes-vous sûr de vouloir supprimer ce todo ?')) {
     try {
-      await graphqlRequest(DELETE_TODO, { id })
+      const client = useSupabaseClient()
+      const { error } = await client
+        .from('todos')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
       todos.value = todos.value.filter(t => t.id !== id)
     } catch (error) {
       console.error('Erreur lors de la suppression:', error)
+      error.value = error.message
     }
   }
 }
 
 const loadUsers = async () => {
   try {
-    const { data } = await graphqlRequest(GET_USERS)
-    users.value = data.users
-  } catch (error) {
-    console.error('Erreur lors du chargement des utilisateurs:', error)
+    const client = useSupabaseClient()
+    const { data, error } = await client
+      .from('users')
+      .select('*')
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    users.value = data || []
+  } catch (err) {
+    error.value = err.message
+    console.error('Erreur lors du chargement des utilisateurs:', err)
+    users.value = []
+  }
+}
+
+// Fonction pour obtenir la couleur selon la priorité
+const getPriorityColor = (priority) => {
+  switch(priority) {
+    case 'high': return 'bg-red-100 text-red-800'
+    case 'medium': return 'bg-yellow-100 text-yellow-800'
+    case 'low': return 'bg-green-100 text-green-800'
+    default: return 'bg-gray-100 text-gray-800'
+  }
+}
+
+// Formatter les dates
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString()
+}
+
+// Vérifier si la date est dépassée
+const isOverdue = (date) => {
+  return new Date(date) < new Date()
+}
+
+// Ajouter une sous-tâche
+const addSubtask = async (todoId) => {
+  if (!newSubtasks.value[todoId]?.trim()) return
+
+  try {
+    const client = useSupabaseClient()
+    const { data, error } = await client
+      .from('subtasks')
+      .insert({
+        todo_id: todoId,
+        title: newSubtasks.value[todoId],
+        completed: false
+      })
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    const todo = todos.value.find(t => t.id === todoId)
+    if (todo) {
+      if (!todo.subtasks) todo.subtasks = []
+      todo.subtasks.push(data)
+    }
+    
+    newSubtasks.value[todoId] = ''
+  } catch (err) {
+    console.error('Erreur lors de l\'ajout de la sous-tâche:', err)
+  }
+}
+
+// Mettre à jour une sous-tâche
+const updateSubtask = async (todoId, subtask) => {
+  try {
+    const client = useSupabaseClient()
+    const { error } = await client
+      .from('subtasks')
+      .update({ completed: subtask.completed })
+      .eq('id', subtask.id)
+
+    if (error) throw error
+  } catch (err) {
+    console.error('Erreur lors de la mise à jour de la sous-tâche:', err)
   }
 }
 
 // Charger les todos au montage
 onMounted(async () => {
-  await Promise.all([
-    loadTodos(),
-    loadUsers()
-  ])
+  try {
+    await Promise.all([
+      loadTodos(),
+      loadUsers()
+    ])
+  } catch (err) {
+    console.error('Erreur:', err)
+  }
 })
+
+const newTag = ref('')
+
+const addTag = () => {
+  if (!newTag.value.trim()) return
+  if (!editingTodo.value.tags) {
+    editingTodo.value.tags = []
+  }
+  if (!editingTodo.value.tags.includes(newTag.value.trim())) {
+    editingTodo.value.tags.push(newTag.value.trim())
+  }
+  newTag.value = ''
+}
+
+const removeTag = (tagToRemove) => {
+  if (editingTodo.value.tags) {
+    editingTodo.value.tags = editingTodo.value.tags.filter(tag => tag !== tagToRemove)
+  }
+}
 </script>

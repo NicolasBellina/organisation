@@ -50,7 +50,7 @@
         :key="user.id" 
         class="bg-white rounded-lg shadow p-6"
       >
-        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div class="w-full sm:w-auto">
             <h3 class="text-xl font-semibold text-gray-800">{{ user.name }}</h3>
             <p class="text-gray-600">{{ user.email }}</p>
@@ -79,98 +79,11 @@
 </template>
 
 <script setup>
-const { $graphql } = useNuxtApp()
-
 const users = ref([])
 const newUser = ref({ name: '', email: '' })
 const error = ref(null)
 const isLoading = ref(false)
 const editMode = ref(false)
-
-const GET_USERS = `
-  query GetUsers {
-    users {
-      id
-      name
-      email
-      todos {
-        id
-        title
-      }
-    }
-  }
-`
-
-const CREATE_USER = `
-  mutation CreateUser($name: String!, $email: String!) {
-    createUser(name: $name, email: $email) {
-      id
-      name
-      email
-    }
-  }
-`
-
-const DELETE_USER = `
-  mutation DeleteUser($id: Int!) {
-    deleteUser(id: $id)
-  }
-`
-
-const UPDATE_USER = `
-  mutation UpdateUser($id: Int!, $name: String!, $email: String!) {
-    updateUser(id: $id, name: $name, email: $email) {
-      id
-      name
-      email
-    }
-  }
-`
-
-const loadUsers = async () => {
-  try {
-    isLoading.value = true
-    error.value = null
-    const { data } = await $graphql(GET_USERS)
-    users.value = data.users
-  } catch (err) {
-    error.value = "Erreur lors du chargement des utilisateurs"
-    console.error('Erreur:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const createUser = async () => {
-  try {
-    isLoading.value = true
-    error.value = null
-    const { data } = await $graphql(CREATE_USER, newUser.value)
-    users.value.unshift(data.createUser)
-    newUser.value = { name: '', email: '' }
-  } catch (err) {
-    error.value = "Erreur lors de la création de l'utilisateur"
-    console.error('Erreur:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const deleteUser = async (id) => {
-  if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
-  
-  try {
-    isLoading.value = true
-    error.value = null
-    await $graphql(DELETE_USER, { id })
-    users.value = users.value.filter(user => user.id !== id)
-  } catch (err) {
-    error.value = "Erreur lors de la suppression de l'utilisateur"
-    console.error('Erreur:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
 
 const editUser = (user) => {
   editMode.value = true
@@ -182,21 +95,120 @@ const cancelEdit = () => {
   newUser.value = { name: '', email: '' }
 }
 
+const loadUsersWithTodos = async () => {
+  try {
+    isLoading.value = true
+    const client = useSupabaseClient()
+    
+    // Chargement des utilisateurs
+    const { data: usersData, error: usersError } = await client
+      .from('users')
+      .select('id, name, email')
+      .order('id', { ascending: false })
+
+    if (usersError) throw usersError
+
+    // Chargement des todos pour chaque utilisateur
+    const { data: todosData, error: todosError } = await client
+      .from('todos')
+      .select('id, user_id')
+
+    if (todosError) throw todosError
+
+    // Associer les todos aux utilisateurs
+    users.value = (usersData || []).map(user => ({
+      ...user,
+      todos: todosData.filter(todo => todo.user_id === user.id)
+    }))
+
+  } catch (err) {
+    console.error('Erreur:', err)
+    error.value = "Erreur lors du chargement des utilisateurs"
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const createUser = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+
+    const client = useSupabaseClient()
+    const { data, error: createError } = await client
+      .from('users')
+      .insert({
+        name: newUser.value.name,
+        email: newUser.value.email
+      })
+      .select('*')
+      .single()
+
+    if (createError) {
+      throw new Error(createError.message)
+    }
+
+    users.value.unshift(data)
+    newUser.value = { name: '', email: '' }
+  } catch (err) {
+    error.value = "Erreur lors de la création de l'utilisateur"
+    console.error('Erreur:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const deleteUser = async (id) => {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
+
+  try {
+    isLoading.value = true
+    error.value = null
+
+    const client = useSupabaseClient()
+    const { error: deleteError } = await client
+      .from('users')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) {
+      throw new Error(deleteError.message)
+    }
+
+    users.value = users.value.filter(user => user.id !== id)
+  } catch (err) {
+    error.value = "Erreur lors de la suppression de l'utilisateur"
+    console.error('Erreur:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 const updateUser = async () => {
   try {
     isLoading.value = true
     error.value = null
-    const { data } = await $graphql(UPDATE_USER, {
-      id: newUser.value.id,
-      name: newUser.value.name,
-      email: newUser.value.email
-    })
-    
+
+    const client = useSupabaseClient()
+    const { data, error: updateError } = await client
+      .from('users')
+      .update({
+        name: newUser.value.name,
+        email: newUser.value.email
+      })
+      .eq('id', newUser.value.id)
+      .select('*')
+      .single()
+
+    if (updateError) {
+      throw new Error(updateError.message)
+    }
+
     const index = users.value.findIndex(u => u.id === newUser.value.id)
     if (index !== -1) {
-      users.value[index] = data.updateUser
+      users.value[index] = data
     }
-    
+
     cancelEdit()
   } catch (err) {
     error.value = "Erreur lors de la modification de l'utilisateur"
@@ -206,5 +218,7 @@ const updateUser = async () => {
   }
 }
 
-onMounted(loadUsers)
+onMounted(async () => {
+  await loadUsersWithTodos()
+})
 </script>
