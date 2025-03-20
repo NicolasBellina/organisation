@@ -634,7 +634,7 @@ const addSubtask = async (todoId) => {
     const client = useSupabaseClient()
     const { data, error } = await client
       .from('subtasks')
-      .insert({
+      .insert({ 
         todo_id: todoId,
         title: newSubtasks.value[todoId],
         completed: false
