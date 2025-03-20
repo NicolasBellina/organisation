@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-const { $graphql } = useNuxtApp()
+const supabase = useSupabaseClient()
 
 const totalTodos = ref(0)
 const completedTodos = ref(0)
@@ -70,34 +70,30 @@ const totalUsers = ref(0)
 const usersWithTodos = ref(0)
 const averageTodosPerUser = ref(0)
 
-const GET_STATS = `
-  query GetStats {
-    todos {
-      id
-      completed
-      user_id
-    }
-    users {
-      id
-      todos {
-        id
-      }
-    }
-  }
-`
-
 onMounted(async () => {
   try {
-    const { data } = await $graphql(GET_STATS)
+    // Récupérer les todos
+    const { data: todosData, error: todosError } = await supabase
+      .from('todos')
+      .select('id, completed, user_id')
+
+    if (todosError) throw todosError
+
+    // Récupérer les utilisateurs
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('id, todos(*)')
+
+    if (usersError) throw usersError
     
     // Statistiques des todos
-    totalTodos.value = data.todos.length
-    completedTodos.value = data.todos.filter(todo => todo.completed).length
-    pendingTodos.value = data.todos.filter(todo => !todo.completed).length
+    totalTodos.value = todosData.length
+    completedTodos.value = todosData.filter(todo => todo.completed).length
+    pendingTodos.value = todosData.filter(todo => !todo.completed).length
 
     // Statistiques des utilisateurs
-    totalUsers.value = data.users.length
-    usersWithTodos.value = data.users.filter(user => user.todos.length > 0).length
+    totalUsers.value = usersData.length
+    usersWithTodos.value = usersData.filter(user => user.todos && user.todos.length > 0).length
     averageTodosPerUser.value = totalUsers.value > 0 
       ? Math.round((totalTodos.value / totalUsers.value) * 10) / 10 
       : 0

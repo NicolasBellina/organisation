@@ -9,38 +9,79 @@
 
     <!-- Filtres et Recherche -->
     <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Barre de recherche principale -->
+      <div class="mb-4">
         <input 
           v-model="filters.search"
-          placeholder="Rechercher..." 
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="Rechercher une tâche..." 
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-        <select 
-          v-model="filters.priority"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+      </div>
+
+      <!-- Bouton pour afficher/masquer les filtres avancés -->
+      <button 
+        @click="showAdvancedFilters = !showAdvancedFilters"
+        class="w-full sm:hidden mb-4 px-4 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center justify-center gap-2"
+      >
+        <span>Filtres avancés</span>
+        <svg 
+          class="w-4 h-4 transform transition-transform" 
+          :class="{ 'rotate-180': showAdvancedFilters }"
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
         >
-          <option value="">Toutes les priorités</option>
-          <option value="high">Haute priorité</option>
-          <option value="medium">Moyenne priorité</option>
-          <option value="low">Basse priorité</option>
-        </select>
-        <select 
-          v-model="filters.status"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-        >
-          <option value="">Tous les statuts</option>
-          <option value="pending">En cours</option>
-          <option value="completed">Terminé</option>
-        </select>
-        <select 
-          v-model="filters.tag"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-        >
-          <option value="">Tous les tags</option>
-          <option v-for="tag in availableTags" :key="tag" :value="tag">
-            {{ tag }}
-          </option>
-        </select>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <!-- Filtres avancés -->
+      <div 
+        class="grid gap-4 transition-all duration-300"
+        :class="{
+          'grid-cols-1': true,
+          'md:grid-cols-3': true,
+          'hidden sm:grid': !showAdvancedFilters,
+          'grid': showAdvancedFilters
+        }"
+      >
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Priorité</label>
+          <select 
+            v-model="filters.priority"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Toutes les priorités</option>
+            <option value="high">Haute priorité</option>
+            <option value="medium">Moyenne priorité</option>
+            <option value="low">Basse priorité</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Statut</label>
+          <select 
+            v-model="filters.status"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="pending">En cours</option>
+            <option value="completed">Terminé</option>
+          </select>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">Tag</label>
+          <select 
+            v-model="filters.tag"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Tous les tags</option>
+            <option v-for="tag in availableTags" :key="tag" :value="tag">
+              {{ tag }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -701,4 +742,6 @@ const removeTag = (tagToRemove) => {
     editingTodo.value.tags = editingTodo.value.tags.filter(tag => tag !== tagToRemove)
   }
 }
+
+const showAdvancedFilters = ref(false)
 </script>
