@@ -4,8 +4,9 @@ export default defineNuxtConfig({
 
   modules: [
     '@nuxtjs/tailwindcss',
-    '@nuxtjs/supabase'
+    '@nuxtjs/supabase',
   ],
+
 
   css: ['~/assets/css/tailwind.css'],
 

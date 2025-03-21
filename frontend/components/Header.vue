@@ -85,9 +85,9 @@ const route = useRoute()
 const isMenuOpen = ref(false)
 
 const menuItems = [
-  { name: 'Todos', path: '/todos' },
-  { name: 'Stats', path: '/stats' },
-  { name: 'Users', path: '/users' }
+{ name: 'Users', path: '/users' },
+{ name: 'Todos', path: '/todos' },
+{ name: 'Stats', path: '/stats' }
 ]
 
 // Fermer le menu quand on change de route
