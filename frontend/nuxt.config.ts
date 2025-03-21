@@ -7,7 +7,6 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase',
   ],
 
-
   css: ['~/assets/css/tailwind.css'],
 
   postcss: {
@@ -19,10 +18,13 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      supabase: {
-        redirect: false
-      }
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_KEY
     }
+  },
+
+  supabase: {
+    redirect: false
   },
 
   compatibilityDate: '2025-03-20',
